@@ -5,6 +5,7 @@ from go import path/filepath as FP
 
 BIND = flag.String('bind', ':8080', 'Port to server HTTP on')
 SPOOLDIR = flag.String('spooldir', '/usr/local/var/spool/svxlink/qso_recorder', 'where to find dated .ogg files')
+TITLE = flag.String('title', 'Identify your repeater and echolink channel here.', 'Root page title')
 
 YMD = '2[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
 HMS = '[0-2][0-9][0-9][0-9][0-9][0-9]'
@@ -50,13 +51,18 @@ class Glob:
   def Emit(w):
     print >>w, """
 <html>
+<head>
+  <title>{title}</title>
+</head>
 <body>
+<h2>{title}</h2>
 <table border=1 cellpadding=2>
   <tr>
     <th>UTC
     <th>California
     <th>Sound Files
-"""
+""".format(title=go_elem(TITLE))
+
     for day, d in sorted(.day_hr.items(), reverse=True):
       for hr, h in sorted(d.items(), reverse=True):
         first = h.values()[0]
