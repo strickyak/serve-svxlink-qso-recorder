@@ -6,7 +6,6 @@ from go import path.filepath as FP
 BIND = flag.String('bind', ':8080', 'Port to server HTTP on')
 SPOOLDIR = flag.String('spooldir', '/usr/local/var/spool/svxlink/qso_recorder', 'where to find dated .ogg files')
 TITLE = flag.String('title', 'Identify your repeater and echolink channel here.', 'Root page title')
-SITE = flag.String('site', '', 'Site prefix for .m3u files')
 
 YMD = '2[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
 HMS = '[0-2][0-9][0-9][0-9][0-9][0-9]'
@@ -96,14 +95,14 @@ class Glob:
   def EmitPlaylist(w, r, starting):
     w.Header().Set('Content-Type', 'audio/mpegurl')
     w.WriteHeader(http.StatusOK)
-    for day, d in sorted(.day_hr.items(), reverse=True):
-      for hr, h in sorted(d.items(), reverse=True):
-        for secs, o in sorted(h.items(), reverse=True):
-          if int(secs) < starting: return
-          print >>w, 'http://{host}/qso_recorder/{filebase}'.format(
-              host=r.Host,
-              filebase=FP.Base(o.filename),
-              )
+    for day, d in sorted(.day_hr.items()):
+      for hr, h in sorted(d.items()):
+        for secs, o in sorted(h.items()):
+          if int(secs) >= starting:
+            print >>w, 'http://{host}/qso_recorder/{filebase}'.format(
+                host=r.Host,
+                filebase=FP.Base(o.filename),
+                )
 
 def RootHandler(spool):
   def handler(w, r):
