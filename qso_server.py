@@ -1,11 +1,12 @@
 # Serve qso*.ogg files from /qso_recorder/ directory of svxlink.
 
-from go import flag, os, net/http, regexp, time
-from go import path/filepath as FP
+from go import flag, os, net.http, regexp, time
+from go import path.filepath as FP
 
 BIND = flag.String('bind', ':8080', 'Port to server HTTP on')
 SPOOLDIR = flag.String('spooldir', '/usr/local/var/spool/svxlink/qso_recorder', 'where to find dated .ogg files')
 TITLE = flag.String('title', 'Identify your repeater and echolink channel here.', 'Root page title')
+SITE = flag.String('site', '', 'Site prefix for .m3u files')
 
 YMD = '2[0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
 HMS = '[0-2][0-9][0-9][0-9][0-9][0-9]'
@@ -44,7 +45,7 @@ class Glob:
       h = d.get(o.z_hr)
       if not h:
         h = {}
-	d[o.z_hr] = h
+        d[o.z_hr] = h
 
       h[o.t1.Unix()] = o
 
@@ -73,13 +74,18 @@ class Glob:
     <td>
 """.format(o=first)
         for secs, o in sorted(h.items()):
-	  print >>w, """
-      <a href="qso_recorder/{filebase}">{start}({duration},{kilos}k)</a> &nbsp; 
+          print >>w, """
+      <a href="qso_recorder/{filebase}">{start}({duration},{kilos}k)</a>
+      &nbsp;
 """.format(  filebase=FP.Base(o.filename),
              start=o.t1.Format(':04:05'),
              duration=o.dur,
-             kilos=int((o.size + 999) / 1000 )
-	     )
+             kilos=int((o.size + 999) / 1000 ),
+             secs=secs,
+             )
+        print >>w, """
+    <td>  <a href="playlist.m3u?starting={secs}">playlist</a>
+""".format(secs=sorted(h.keys())[0])
 
     print >>w, """
 </table>
@@ -87,10 +93,26 @@ class Glob:
 </html>
 """
 
+  def EmitPlaylist(w, r, starting):
+    w.Header().Set('Content-Type', 'audio/mpegurl')
+    w.WriteHeader(http.StatusOK)
+    for day, d in sorted(.day_hr.items(), reverse=True):
+      for hr, h in sorted(d.items(), reverse=True):
+        for secs, o in sorted(h.items(), reverse=True):
+          if int(secs) < starting: return
+          print >>w, 'http://{host}/qso_recorder/{filebase}'.format(
+              host=r.Host,
+              filebase=FP.Base(o.filename),
+              )
+
 def RootHandler(spool):
   def handler(w, r):
     try:
-      Glob(spool).Emit(w)
+      values = dict(r.URL.Query())
+      if 'starting' in values:
+        Glob(spool).EmitPlaylist(w, r, int(values['starting'][0]))
+      else:
+        Glob(spool).Emit(w)
     except as ex:
       print >>w, ex
   return handler
