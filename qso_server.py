@@ -73,14 +73,17 @@ class Glob:
     <td>
 """.format(o=first)
         for secs, o in sorted(h.items()):
+          kilos=int((o.size + 999) / 1000 )
+          A, B = '', ''
+          if kilos <= 25: A, B = '<small>', '</small>'
+          if kilos >= 1000: A, B = '<b>', '</b>'
           print >>w, """
-      <a href="qso_recorder/{filebase}">{start}({duration},{kilos}k)</a>
+      <a href="qso_recorder/{filebase}">{A}{start}({duration},{kilos}k){B}</a>
       &nbsp;
 """.format(  filebase=FP.Base(o.filename),
              start=o.t1.Format(':04:05'),
              duration=o.dur,
-             kilos=int((o.size + 999) / 1000 ),
-             secs=secs,
+             kilos=kilos, secs=secs, A=A, B=B,
              )
         print >>w, """
     <td>  <a href="playlist.m3u?starting={secs}">playlist</a>
